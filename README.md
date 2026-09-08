@@ -1,12 +1,21 @@
-# NUMIA Calculadora Clínica
+﻿# ACTUALIZACIÓN (8 de Septiembre 2026):
+Se han corregido 4 fallas críticas arquitectónicas en la conexión Frontend-Backend:
+1. Codificación UTF-8 y errores asíncronos en el inicio.
+2. Mapeo de payloads correctos hacia la API (incluyendo weight y broncoFlags).
+3. Conversión de IDs tipo string ("preview") a enteros para cumplir validaciones Pydantic.
+4. Reinserción de funciones UI perdidas en la migración (shouldAutoRebalance y enderAfterDataChange) que impedían guardar pacientes.
 
-Este repositorio contiene la calculadora clínica estructurada en una arquitectura Serverless: **Frontend nativo estático** y **Backend Python/FastAPI**.
+**El repositorio en GitHub y la carpeta local se encuentran 100% actualizados y operativos.**
+
+---# NUMIA Calculadora ClÃ­nica
+
+Este repositorio contiene la calculadora clÃ­nica estructurada en una arquitectura Serverless: **Frontend nativo estÃ¡tico** y **Backend Python/FastAPI**.
 
 ## Estructura del Proyecto
-- `/frontend/` - Archivos estáticos de la aplicación (HTML, CSS, JS).
-- `/backend/` - Motor clínico escrito en Python y API (FastAPI).
+- `/frontend/` - Archivos estÃ¡ticos de la aplicaciÃ³n (HTML, CSS, JS).
+- `/backend/` - Motor clÃ­nico escrito en Python y API (FastAPI).
 - `/api/` - Puente Serverless de Vercel (Index.py).
-- `vercel.json` - Configuración de enrutamiento para despliegue en Vercel.
+- `vercel.json` - ConfiguraciÃ³n de enrutamiento para despliegue en Vercel.
 - `requirements.txt` - Dependencias para el entorno de Vercel y local.
 
 ## Desarrollo Local
@@ -25,7 +34,7 @@ Este repositorio contiene la calculadora clínica estructurada en una arquitectu
 ## Despliegue en Vercel y GitHub
 
 ### 1. Subir a GitHub
-Inicia tu repositorio local y súbelo a GitHub:
+Inicia tu repositorio local y sÃºbelo a GitHub:
 ```bash
 git init
 git add .
@@ -38,13 +47,14 @@ git push -u origin main
 ### 2. Despliegue en Vercel
 1. Ingresa a [Vercel](https://vercel.com/) y haz clic en **Add New Project**.
 2. Conecta tu cuenta de GitHub e importa el repositorio de la calculadora.
-3. Vercel detectará automáticamente la configuración base, pero **no requiere un framework específico**.
+3. Vercel detectarÃ¡ automÃ¡ticamente la configuraciÃ³n base, pero **no requiere un framework especÃ­fico**.
 4. Haz clic en **Deploy**. 
 
-Vercel automáticamente:
-- Desplegará la carpeta `/frontend` como estática de forma global en su Edge Network gracias a `vercel.json`.
-- Detectará el archivo `api/index.py` y el archivo `requirements.txt`, compilando el motor de Python como una **Vercel Serverless Function**.
-- Enrutará todas las peticiones `tu-dominio.vercel.app/api/*` hacia tu motor en Python, y el resto hacia el frontend.
+Vercel automÃ¡ticamente:
+- DesplegarÃ¡ la carpeta `/frontend` como estÃ¡tica de forma global en su Edge Network gracias a `vercel.json`.
+- DetectarÃ¡ el archivo `api/index.py` y el archivo `requirements.txt`, compilando el motor de Python como una **Vercel Serverless Function**.
+- EnrutarÃ¡ todas las peticiones `tu-dominio.vercel.app/api/*` hacia tu motor en Python, y el resto hacia el frontend.
 
 ### 3. Consideraciones Post-Despliegue
-Una vez desplegado, la aplicación estará lista para la producción y auditable cara a cara con tu "Excel madre". El frontend consumirá la API sin estado automáticamente utilizando rutas relativas.
+Una vez desplegado, la aplicaciÃ³n estarÃ¡ lista para la producciÃ³n y auditable cara a cara con tu "Excel madre". El frontend consumirÃ¡ la API sin estado automÃ¡ticamente utilizando rutas relativas.
+
