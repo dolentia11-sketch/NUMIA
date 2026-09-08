@@ -6,7 +6,7 @@ Patient IDs arrive as numbers (JSON); auxiliary IDs as strings.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Literal
 
 
@@ -40,6 +40,9 @@ class AuxiliaryIn(BaseModel):
 
 
 class TurnRequest(BaseModel):
+    # Reject an obsolete envelope such as {"state": {...}} instead of
+    # silently evaluating the schema defaults as an empty clinical turn.
+    model_config = ConfigDict(extra="forbid")
     patients: list[PatientIn] = Field(default_factory=list)
     auxiliaries: list[AuxiliaryIn] = Field(default_factory=list)
     assignments: dict[str, str] | None = None
@@ -64,5 +67,6 @@ class AuxiliaryPreviewIn(BaseModel):
 
 
 class PreviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     patients: list[PatientPreviewIn] = Field(default_factory=list)
     auxiliaries: list[AuxiliaryPreviewIn] = Field(default_factory=list)

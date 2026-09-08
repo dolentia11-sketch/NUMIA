@@ -1,16 +1,16 @@
 # Motor Python NUMIA — MIG-010
 
-Este directorio contiene el motor determinista de paridad y su frontera de validación. La API HTTP y la integración del frontend siguen pendientes. No hay persistencia ni estado compartido entre turnos.
+Este directorio contiene el motor determinista de paridad, su frontera de validación y la API HTTP FastAPI consumida por `public/assets/app.js`. No hay persistencia ni estado compartido entre turnos.
 
 ## Ejecutar pruebas
 
-Desde `backend/`:
+Desde la raíz del proyecto:
 
 ```powershell
-py -3 -B -m unittest discover -s tests -v
+py -3 -B -m unittest discover -s backend/tests -t backend -v
 ```
 
-Requiere Python >=3.11 y Node en PATH para comparar con el HTML real. No requiere paquetes de Python externos. Si Node falta o cambia la huella de referencia, la prueba falla; no se omite silenciosamente.
+Requiere Python >=3.11, las dependencias de `requirements.txt`, `httpx` y Node en PATH para comparar con el HTML real. Si Node falta o cambia la huella de referencia, la prueba falla; no se omite silenciosamente.
 
 Desde la raíz del proyecto, generar el informe reproducible:
 
@@ -27,7 +27,7 @@ La semilla `20260908` genera 100 turnos, 8.245 pacientes y 1.395 auxiliares. Se 
 - `app/domain/eligibility.py`: tipo biomecánico, cap10/cap20, elegibilidad y unidades.
 - `app/domain/balancing.py`: algoritmo voraz y desempate del HTML.
 - `app/domain/metrics.py`: estados, alertas, cobertura y carga.
-- `app/domain/engine.py`: operación `balance` o `metrics` para la futura capa HTTP.
+- `app/domain/engine.py`: operación `balance`, `metrics` o `preview` para la capa HTTP actual.
 - `app/domain/validation.py`: rechazo de datos inválidos antes de calcular, aprobado por el propietario durante la auditoría.
 
 ## Contrato del motor público
@@ -36,7 +36,7 @@ La semilla `20260908` genera 100 turnos, 8.245 pacientes y 1.395 auxiliares. Se 
 
 El peso debe ser positivo y finito; Barthel entero entre 0 y 100; Braden entero entre 6 y 23; `broncoFlags` exactamente cinco booleanos. Se rechazan IDs duplicados, el ID auxiliar reservado `__proto__` y referencias inexistentes. No se recortan escalas, no se reparan referencias ni se impone capacidad de cuidado como validación. Los nombres no participan en el cálculo y no son campos obligatorios de este dominio.
 
-`TurnValidationError` deriva de `ValueError` y ofrece `.code`, `.path` y `.as_dict()`. No incluye valores clínicos, nombres ni IDs recibidos. Su traducción a HTTP 422 corresponde a la futura API. Las funciones de puntuación conservan el comportamiento de referencia para campos incompletos; la operación pública no acepta registros guardados incompletos.
+`TurnValidationError` deriva de `ValueError` y ofrece `.code`, `.path` y `.as_dict()`. No incluye valores clínicos, nombres ni IDs recibidos. FastAPI lo traduce a HTTP 422. Las funciones de puntuación conservan el comportamiento de referencia para campos incompletos; la operación pública no acepta registros guardados incompletos.
 
 ## Correcciones verificadas
 
@@ -45,6 +45,6 @@ El peso debe ser positivo y finito; Barthel entero entre 0 y 100; Braden entero 
 - Perfiles y capacidades auxiliares calculados una sola vez por turno; misma elegibilidad, orden y ranking, sin caché compartida.
 - Se retiró `[tool.unittest]`, que no configuraba realmente el descubrimiento de pruebas.
 
-Consultar la auditoría en `../plan paso a paso numia/14_AUDITORIA_MOTOR_PYTHON_100_CASOS.md` antes de iniciar la conexión con la API. Los límites de transporte, números extremos, respuesta necesaria para el canvas y semántica del estado vacío siguen pendientes de decisión. Esta entrega no es una aprobación de producción.
+Consultar la auditoría en `../plan paso a paso numia/14_AUDITORIA_MOTOR_PYTHON_100_CASOS.md` para la evidencia de paridad. Los límites de transporte, números extremos, respuesta necesaria para el canvas y semántica del estado vacío siguen pendientes de decisión. Esta entrega no es una aprobación de producción.
 
-`cap20` se conserva calculado y no participa en elegibilidad, asignación ni alertas. La API se añadirá en MIG-020 después de mantener esta suite verde.
+`cap20` se conserva calculado y no participa en elegibilidad, asignación ni alertas. La API conserva el contrato raíz `patients`, `auxiliaries`, `assignments` y `action`; rechaza envoltorios desconocidos para evitar evaluaciones silenciosamente vacías.

@@ -1,60 +1,63 @@
-﻿# ACTUALIZACIÓN (8 de Septiembre 2026):
-Se han corregido 4 fallas críticas arquitectónicas en la conexión Frontend-Backend:
-1. Codificación UTF-8 y errores asíncronos en el inicio.
-2. Mapeo de payloads correctos hacia la API (incluyendo weight y broncoFlags).
-3. Conversión de IDs tipo string ("preview") a enteros para cumplir validaciones Pydantic.
-4. Reinserción de funciones UI perdidas en la migración (shouldAutoRebalance y enderAfterDataChange) que impedían guardar pacientes.
+# NUMIA Calculadora Clínica
 
-**El repositorio en GitHub y la carpeta local se encuentran 100% actualizados y operativos.**
+NUMIA usa una interfaz estática nativa servida desde `public/` y un motor clínico Python/FastAPI sin estado. La frontera cliente–API conserva las fórmulas, reglas de elegibilidad, capacidad, asignación y métricas del motor de paridad.
 
----# NUMIA Calculadora ClÃ­nica
+## Estructura
 
-Este repositorio contiene la calculadora clÃ­nica estructurada en una arquitectura Serverless: **Frontend nativo estÃ¡tico** y **Backend Python/FastAPI**.
+- `public/`: interfaz que Vercel y FastAPI sirven al navegador.
+- `public/assets/app.js`: cliente de la API; envía `patients`, `auxiliaries`, `assignments` y `action` en la raíz de `TurnRequest`.
+- `backend/`: motor clínico y endpoints FastAPI.
+- `pyproject.toml`: entrada serverless explícita `backend.app.main:app` para Vercel; `api/index.py` conserva el import compatible anterior.
+- `reference/index.html`: oráculo histórico de paridad clínica; no es el frontend servido.
+- `qa/`: regresiones del oráculo y del contrato frontend–API.
 
-## Estructura del Proyecto
-- `/frontend/` - Archivos estÃ¡ticos de la aplicaciÃ³n (HTML, CSS, JS).
-- `/backend/` - Motor clÃ­nico escrito en Python y API (FastAPI).
-- `/api/` - Puente Serverless de Vercel (Index.py).
-- `vercel.json` - ConfiguraciÃ³n de enrutamiento para despliegue en Vercel.
-- `requirements.txt` - Dependencias para el entorno de Vercel y local.
+## Desarrollo local
 
-## Desarrollo Local
-1. Crea un entorno virtual e instala las dependencias:
-   ```bash
-   python -m venv .venv
-   source .venv/Scripts/activate  # (En Windows)
-   pip install -r requirements.txt
+1. Instala dependencias:
+
+   ```powershell
+   py -3 -m pip install -r requirements.txt
    ```
-2. Inicia el servidor de desarrollo:
-   ```bash
-   uvicorn backend.app.main:app --reload
+
+2. Inicia la aplicación:
+
+   ```powershell
+   py -3 -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
    ```
-3. Abre `http://localhost:8000` en tu navegador.
 
-## Despliegue en Vercel y GitHub
+3. Abre `http://127.0.0.1:8000`.
 
-### 1. Subir a GitHub
-Inicia tu repositorio local y sÃºbelo a GitHub:
-```bash
-git init
-git add .
-git commit -m "Arquitectura inicial Frontend-Backend lista"
-git branch -M main
-git remote add origin https://github.com/<TU_USUARIO>/<TU_REPOSITORIO>.git
-git push -u origin main
+No hay persistencia: los registros del turno viven solo en la sesión del navegador.
+
+## Validación
+
+Desde la raíz:
+
+```powershell
+py -3 -m pip install -r requirements.txt httpx
+py -3 -B -m unittest discover -s backend/tests -t backend -v
+node --check public/assets/app.js
+node qa/frontend_contract.cjs
+node qa/reference_golden.cjs
 ```
 
-### 2. Despliegue en Vercel
-1. Ingresa a [Vercel](https://vercel.com/) y haz clic en **Add New Project**.
-2. Conecta tu cuenta de GitHub e importa el repositorio de la calculadora.
-3. Vercel detectarÃ¡ automÃ¡ticamente la configuraciÃ³n base, pero **no requiere un framework especÃ­fico**.
-4. Haz clic en **Deploy**. 
+Para probar el navegador, abre la aplicación en una sesión aislada de `agent-browser` y ejecuta:
 
-Vercel automÃ¡ticamente:
-- DesplegarÃ¡ la carpeta `/frontend` como estÃ¡tica de forma global en su Edge Network gracias a `vercel.json`.
-- DetectarÃ¡ el archivo `api/index.py` y el archivo `requirements.txt`, compilando el motor de Python como una **Vercel Serverless Function**.
-- EnrutarÃ¡ todas las peticiones `tu-dominio.vercel.app/api/*` hacia tu motor en Python, y el resto hacia el frontend.
+```powershell
+agent-browser --session numia-parity-final open http://127.0.0.1:8000
+node qa/browser_parity.cjs RUTA_AL_EJECUTABLE_AGENT_BROWSER numia-parity-final
+```
 
-### 3. Consideraciones Post-Despliegue
-Una vez desplegado, la aplicaciÃ³n estarÃ¡ lista para la producciÃ³n y auditable cara a cara con tu "Excel madre". El frontend consumirÃ¡ la API sin estado automÃ¡ticamente utilizando rutas relativas.
+Esta prueba usa exclusivamente datos sintéticos: comprueba registro, previews, balanceo, sobrecarga 18/17, errores de red y compara los textos/números del PDF con `index.html`. No debe ejecutarse en una sesión con datos de pacientes.
 
+La referencia congelada `index.html` y `reference/index.html` tiene SHA-256 `64423D796D467DD7ACB7784D522BBD5E45392BD6CE40BA80D3F714F3D0BC9BC6`. Las fórmulas permanecen en `backend/app/domain/`; no hay motor clínico alternativo en el cliente. El historial y los planes anteriores describen etapas pasadas; el estado de esta entrega se documenta en `DEPURACION_PARIDAD_2026-09-08.md`.
+
+El auditor exhaustivo del dominio también está disponible, pero actualiza deliberadamente sus artefactos de evidencia:
+
+```powershell
+py -3 -B qa/audit_engine.py
+```
+
+## Despliegue
+
+`vercel.json` selecciona FastAPI y `pyproject.toml` declara su entrada. Se conservan las rutas originales `/api/*` sin reescribirlas al nombre de un archivo; `public/` contiene los estáticos. Antes de declarar una versión de producción, verifique el commit desplegado, `GET /api/health`, `POST /api/v1/turn/evaluate` y el flujo de registrar paciente/auxiliar en `https://numia-ashen.vercel.app`. No se deben usar datos clínicos reales durante pruebas.

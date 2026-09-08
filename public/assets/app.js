@@ -1,13 +1,30 @@
 
 const API_BASE = "/api/v1";
-let LAST_EVALUATION = {
+function emptyEvaluation() { return {
   assignments: {},
-  metrics: { loads: {}, unassigned: 0, overloaded: 0 },
+  metrics: { loads: {}, unassigned: 0, overloaded: 0, full: 0, alerts: 0, totalAssigned: 0, balance: 0 },
   patient_scores: {},
   auxiliary_profiles: {},
   auxiliary_recommendations: {},
   eligibility: {}
-};
+}; }
+let LAST_EVALUATION = emptyEvaluation();
+let evaluationPending = false;
+let patientPreviewRevision = 0;
+let auxiliaryPreviewRevision = 0;
+
+async function requestEngine(path, body) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`API Error ${response.status}`);
+    return await response.json();
+  } finally { clearTimeout(timer); }
+}
 
 async function fetchEvaluation(action = 'metrics') {
   const payload = {
@@ -19,13 +36,7 @@ async function fetchEvaluation(action = 'metrics') {
     })),
     assignments: STATE.assignments
   };
-  const response = await fetch(`${API_BASE}/turn/evaluate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ state: payload, action: action })
-  });
-  if (!response.ok) throw new Error("API Error");
-  return response.json();
+  return requestEngine('/turn/evaluate', { ...payload, action });
 }
 
 async function previewTurn(partialPatient = null, partialAux = null) {
@@ -33,18 +44,23 @@ async function previewTurn(partialPatient = null, partialAux = null) {
     patients: partialPatient ? [partialPatient] : [],
     auxiliaries: partialAux ? [partialAux] : []
   };
-  const response = await fetch(`${API_BASE}/turn/preview`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
-  });
-  if (!response.ok) throw new Error("API Error");
-  return response.json();
+  return requestEngine('/turn/preview', requestBody);
 }
 
 async function runEvaluate(action = 'metrics', silent = false) {
+  if (evaluationPending) return false;
+  evaluationPending = true;
+  const previous = LAST_EVALUATION;
+  const previousAssignments = STATE.assignments;
+  const previousBalanced = STATE.hasBalanced;
+  $('#progress-bar').classList.add('active');
   try {
     const result = await fetchEvaluation(action);
+    if (!result.metrics || !result.patient_scores || !result.auxiliary_profiles ||
+        STATE.patients.some(p => !result.patient_scores[p.id]) ||
+        STATE.auxiliaries.some(a => !result.metrics.loads[a.id] || !result.auxiliary_profiles[a.id])) {
+      throw new Error('Respuesta incompleta del motor');
+    }
     LAST_EVALUATION = result;
     if (action === 'balance') {
       STATE.assignments = result.assignments || {};
@@ -52,11 +68,22 @@ async function runEvaluate(action = 'metrics', silent = false) {
     }
     render();
     if (action === 'balance' && !silent) {
-      toast("Balanceo completado", "Las cargas han sido distribuidas uniformemente.");
+      const assigned = Object.keys(result.assignments).length;
+      const unassigned = result.metrics.unassigned;
+      toast("Balanceo completo", unassigned === 0 ? (result.metrics.overloaded > 0 ? `${assigned} pacientes asignados con alertas.` : `${assigned} pacientes asignados óptimamente.`) : `${assigned} asignados · ${unassigned} sin auxiliar disponible.`);
     }
+    return true;
   } catch (error) {
+    LAST_EVALUATION = previous;
+    STATE.assignments = previousAssignments;
+    STATE.hasBalanced = previousBalanced;
     console.error(error);
-    toast("Fallo de conexión", "No se pudo conectar con el motor.", "danger");
+    const rejected = /^API Error 4/.test(error.message || "");
+    toast(rejected ? "Datos rechazados" : "Fallo de conexión", rejected ? "El motor rechazó los datos del turno. Revisa los campos requeridos." : "No se pudo conectar con el motor.", "danger");
+    return false;
+  } finally {
+    evaluationPending = false;
+    $('#progress-bar').classList.remove('active');
   }
 }
 
@@ -141,10 +168,30 @@ const STATE = {
 
     async function renderAfterDataChange() {
       if (shouldAutoRebalance()) {
-        await runEvaluate("balance", true);
+        return runEvaluate("balance", true);
       } else {
-        await runEvaluate("metrics");
+        return runEvaluate("metrics");
       }
+    }
+
+    function nextAuxiliaryId() {
+      let index = STATE.auxiliaries.length + 1;
+      while (STATE.auxiliaries.some(auxiliary => auxiliary.id === `aux${index}`)) index += 1;
+      return `aux${index}`;
+    }
+
+    async function autoBalance(options = {}) {
+      const { silent = false } = options;
+      if (evaluationPending) return false;
+      if (STATE.patients.length === 0) {
+        if (!silent) toast("Sin pacientes", "Registra al menos un paciente para balancear.", "warn");
+        return false;
+      }
+      if (STATE.auxiliaries.length === 0) {
+        if (!silent) toast("Sin auxiliares", "Registra al menos un auxiliar para balancear.", "warn");
+        return false;
+      }
+      return runEvaluate('balance', silent);
     }
 
     function render() {
@@ -408,6 +455,7 @@ const STATE = {
     }
 
     function openPatientModal() {
+      if (evaluationPending) return;
       ["p-bed", "p-name", "p-weight", "p-barthel", "p-braden"].forEach(id => {
         $(`#${id}`).value = "";
       });
@@ -426,6 +474,7 @@ const STATE = {
     }
 
     function openAuxModal() {
+      if (evaluationPending) return;
       ["a-id", "a-name", "a-weight"].forEach(id => {
         $(`#${id}`).value = "";
       });
@@ -435,6 +484,7 @@ const STATE = {
     }
 
     function closeModal(id) {
+      if (evaluationPending) return;
       setModalState(id, false);
     }
 
@@ -447,6 +497,7 @@ const STATE = {
     }
 
     async function updatePatientPreview() {
+      const revision = ++patientPreviewRevision;
       const weight = Number($("#p-weight").value);
       const barthel = Number($("#p-barthel").value);
       const braden = Number($("#p-braden").value);
@@ -467,22 +518,40 @@ const STATE = {
       }
 
       try {
+        const broncoFlags = [...STATE.formBroncoFlags];
         const preview = await previewTurn({
           id: 999999, name: "Preview", diagnosis: "",
-          weight, barthel, braden, broncoFlags: STATE.formBroncoFlags
+          weight, barthel, braden, broncoFlags
         }, null);
-        const score = preview.patient_scores[999999] || { risk: "INCOMPLETO", total: "-" };
+        if (revision !== patientPreviewRevision) return;
+        const score = preview.patient_scores[999999];
         
         $("#prev-score").textContent = score.total;
         $("#prev-risk").textContent = score.risk;
-        $("#prev-risk").style.color = score.risk === "SEVERO" ? "var(--severe)" : score.risk === "MODERADO" ? "var(--moderate)" : "var(--mild)";
-        $("#prev-aux").textContent = "API";
-        $("#prev-explain").innerHTML = `Evaluado vía API. Riesgo: <strong>${score.risk}</strong>`;
+        $("#prev-risk").style.color = score.risk === "SEVERO" ? "var(--red)" : score.risk === "MODERADO" ? "var(--orange)" : "var(--green)";
+        $("#prev-aux").textContent = `Tipo ${Math.max(score.riskValue, 1)}+`;
+        const broncoCount = broncoFlags.filter(Boolean).length;
+        $("#prev-explain").innerHTML = `
+          <strong>Desglose:</strong>
+          Barthel ${barthel} → <code>${score.parts.barthel}pt</code> ·
+          Braden ${braden} → <code>${score.parts.braden}pt</code> ·
+          EED ${broncoCount}/5 → <code>${score.parts.bronco}pt</code> ·
+          Peso ${weight}kg → <code>${score.parts.weight}pt</code>
+          <br><strong>Total:</strong> <code>${score.parts.barthel}+${score.parts.braden}+${score.parts.bronco}+${score.parts.weight} = ${score.total}</code> → <strong>${score.risk}</strong>
+        `;
         $("#prev-explain").classList.add("show");
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        if (revision !== patientPreviewRevision) return;
+        $("#prev-score").textContent = "—";
+        $("#prev-risk").textContent = "—";
+        $("#prev-aux").textContent = "—";
+        $("#prev-explain").textContent = 'No se pudo calcular. Revisa los valores y la conexión.';
+        $("#prev-explain").classList.add('show');
+      }
     }
 
     async function updateAuxPreview() {
+      const revision = ++auxiliaryPreviewRevision;
       const weight = Number($("#a-weight").value);
       if ($("#a-weight").value === "" || !Number.isFinite(weight)) {
         $("#prev-type").textContent = "—";
@@ -492,21 +561,30 @@ const STATE = {
         return;
       }
       try {
-        const preview = await previewTurn(null, { id: 999999, name: "Preview", weight });
-        const profile = preview.auxiliary_profiles["preview"] || { type: "Desconocido", cap10: 0, maxPatients: 0 };
+        const preview = await previewTurn(null, { id: "preview", name: "Preview", weight });
+        if (revision !== auxiliaryPreviewRevision) return;
+        const profile = preview.auxiliary_profiles["preview"];
         
         $("#prev-type").textContent = profile.type;
         $("#prev-cap10").textContent = profile.cap10.toFixed(1);
         $("#prev-maxp").textContent = profile.maxPatients;
 
         $("#prev-aux-explain").innerHTML = `
-          Evaluado vía API -> <code>${profile.type}</code> | máximo <code>${profile.maxPatients}</code> pacientes.
+          <strong>Desglose:</strong> Peso ${weight}kg → <code>${profile.type}</code> · capacidad segura <code>${profile.cap10.toFixed(1)} kg</code> · máximo <code>${profile.maxPatients}</code> pacientes.
         `;
         $("#prev-aux-explain").classList.add("show");
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        if (revision !== auxiliaryPreviewRevision) return;
+        $("#prev-type").textContent = "—";
+        $("#prev-cap10").textContent = "—";
+        $("#prev-maxp").textContent = "—";
+        $("#prev-aux-explain").textContent = 'No se pudo calcular. Revisa el peso y la conexión.';
+        $("#prev-aux-explain").classList.add('show');
+      }
     }
 
     async function savePatient() {
+      if (evaluationPending) return;
       const id = Number($("#p-bed").value);
       const name = $("#p-name").value.trim();
       const weight = Number($("#p-weight").value);
@@ -539,15 +617,20 @@ const STATE = {
       }
 
       STATE.patients.push({ id, name, weight, barthel, braden, broncoFlags: [...STATE.formBroncoFlags] });
+      const recalculated = shouldAutoRebalance();
+      if (!await renderAfterDataChange()) {
+        STATE.patients = STATE.patients.filter(p => p.id !== id);
+        render();
+        return;
+      }
       STATE.nextPatientId = Math.max(STATE.nextPatientId, id + 1);
       closeModal("patient-modal");
-      const recalculated = shouldAutoRebalance();
-      await renderAfterDataChange();
       const broncoCount = STATE.formBroncoFlags.filter(Boolean).length;
       toast("Paciente registrado", `${name} · cama ${id}${broncoCount >= 3 ? ` · EED ${broncoCount}/5` : ""}${recalculated ? " · distribución recalculada" : ""}`);
     }
 
     async function saveAux() {
+      if (evaluationPending) return;
       const id = $("#a-id").value.trim();
       const name = $("#a-name").value.trim();
       const weight = Number($("#a-weight").value);
@@ -574,23 +657,31 @@ const STATE = {
       }
 
       STATE.auxiliaries.push({ id, name, weight });
-      closeModal("aux-modal");
       const recalculated = shouldAutoRebalance();
-      await renderAfterDataChange();
+      if (!await renderAfterDataChange()) {
+        STATE.auxiliaries = STATE.auxiliaries.filter(a => a.id !== id);
+        render();
+        return;
+      }
+      closeModal("aux-modal");
       toast("Auxiliar registrado", `${name} · ${(LAST_EVALUATION.auxiliary_profiles[id] || {type: "Desconocido"}).type}${recalculated ? " · distribución recalculada" : ""}`);
     }
 
     async function removePatient(id) {
+      if (evaluationPending) return;
+      const previous = structuredClone(STATE);
       const p = STATE.patients.find(item => item.id === id);
       if (!confirm(`¿Estás seguro de que deseas eliminar al paciente ${p ? p.name : ""} del turno?`)) return;
       const recalculated = STATE.hasBalanced && STATE.patients.length > 1 && STATE.auxiliaries.length > 0;
       STATE.patients = STATE.patients.filter(patient => patient.id !== id);
       delete STATE.assignments[id];
-      await renderAfterDataChange();
+      if (!await renderAfterDataChange()) { Object.assign(STATE, previous); render(); return; }
       toast("Paciente eliminado", recalculated ? "La distribución fue recalculada." : "El registro fue retirado del turno.");
     }
 
     async function removeAux(id) {
+      if (evaluationPending) return;
+      const previous = structuredClone(STATE);
       const auxiliary = STATE.auxiliaries.find(item => item.id === id);
       if (!confirm(`¿Estás seguro de que deseas eliminar al auxiliar ${auxiliary ? auxiliary.name : ""} del turno?`)) return;
       const recalculated = STATE.hasBalanced && STATE.patients.length > 0 && STATE.auxiliaries.length > 1;
@@ -598,11 +689,12 @@ const STATE = {
       Object.keys(STATE.assignments).forEach(patientId => {
         if (STATE.assignments[patientId] === id) delete STATE.assignments[patientId];
       });
-      await renderAfterDataChange();
+      if (!await renderAfterDataChange()) { Object.assign(STATE, previous); render(); return; }
       toast("Auxiliar eliminado", auxiliary ? `${auxiliary.name} fue retirado${recalculated ? " y el turno fue rebalanceado." : "."}` : "El registro fue retirado.");
     }
 
     function clearData() {
+      if (evaluationPending) return;
       if ((STATE.patients.length > 0 || STATE.auxiliaries.length > 0) && !confirm("¿Estás seguro de que deseas limpiar el turno? Todos los datos se perderán.")) {
         return;
       }
@@ -611,6 +703,7 @@ const STATE = {
       STATE.assignments = {};
       STATE.nextPatientId = 101;
       STATE.hasBalanced = false;
+      LAST_EVALUATION = emptyEvaluation();
       render();
       toast("Turno limpio", "La calculadora quedó lista para nuevos datos.");
     }
@@ -895,13 +988,14 @@ const STATE = {
       return new Blob(parts, { type: "application/pdf" });
     }
 
-    function exportReportPdf() {
+    async function exportReportPdf() {
+      if (evaluationPending) return;
       if (STATE.patients.length === 0 && STATE.auxiliaries.length === 0) {
         toast("Sin datos", "Agrega o carga datos antes de exportar el PDF.", "warn");
         return;
       }
       if (STATE.patients.length > 0 && STATE.auxiliaries.length > 0 && Object.keys(STATE.assignments).length === 0) {
-        autoBalance({ silent: true });
+        if (!await autoBalance({ silent: true })) return;
       }
       const metrics = LAST_EVALUATION.metrics || { unassigned: 0, overloaded: 0, loads: {} };
       let msg = "El PDF generado contendrá los datos clínicos y operativos del turno actual. ¿Deseas descargarlo?";
@@ -977,25 +1071,24 @@ const STATE = {
     }
 
     async function finishOnboarding(loadSample) {
+      if (evaluationPending) return;
       if (loadSample && (STATE.patients.length > 0 || STATE.auxiliaries.length > 0)) {
         if (!confirm("Al cargar datos de ejemplo se sobrescribirá el turno actual. ¿Deseas continuar?")) {
           return;
         }
       }
       setModalState("onboarding", false);
-      setTimeout(() => {
+      const previous = structuredClone(STATE);
         if (loadSample) {
           STATE.patients = SAMPLE_PATIENTS.map(patient => ({ ...patient, broncoFlags: [...patient.broncoFlags] }));
           STATE.auxiliaries = SAMPLE_AUX.map(auxiliary => ({ ...auxiliary }));
           STATE.assignments = {};
           STATE.nextPatientId = 109;
-          render();
-          setTimeout(autoBalance, 360);
+          if (!await autoBalance()) { Object.assign(STATE, previous); render(); }
         } else {
           render();
           setTimeout(() => toast("Listo para comenzar", "Añade pacientes y auxiliares para iniciar el turno."), 320);
         }
-      }, 260);
     }
 
     function showWelcome() {

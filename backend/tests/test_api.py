@@ -31,6 +31,29 @@ class HealthTests(unittest.TestCase):
 
 class EvaluateEndpointTests(unittest.TestCase):
 
+    def test_rejects_legacy_wrapped_state_instead_of_evaluating_empty_turn(self):
+        """Guard against the frontend contract regression fixed in MIG-020."""
+        r = client.post("/api/v1/turn/evaluate", json={
+            "state": {
+                "patients": [valid_patient()],
+                "auxiliaries": [valid_auxiliary()],
+                "assignments": {},
+            },
+            "action": "metrics",
+        })
+        self.assertEqual(r.status_code, 422)
+
+    def test_frontend_turn_contract_produces_nonempty_evaluation(self):
+        r = client.post("/api/v1/turn/evaluate", json={
+            "patients": [valid_patient()],
+            "auxiliaries": [valid_auxiliary()],
+            "assignments": {},
+            "action": "metrics",
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("101", r.json()["patient_scores"])
+        self.assertIn("aux1", r.json()["auxiliary_profiles"])
+
     def test_balance_returns_200_with_expected_keys(self):
         r = client.post("/api/v1/turn/evaluate", json={
             "patients": [valid_patient()],
@@ -176,11 +199,12 @@ class PreviewEndpointTests(unittest.TestCase):
     def test_preview_with_partial_auxiliary(self):
         r = client.post("/api/v1/turn/preview", json={
             "patients": [],
-            "auxiliaries": [{"weight": 65}]
+            "auxiliaries": [{"id": "preview", "weight": 65}]
         })
         self.assertEqual(r.status_code, 200)
         body = r.json()
         self.assertIn("auxiliary_profiles", body)
+        self.assertIn("preview", body["auxiliary_profiles"])
 
     def test_preview_rejects_invalid_present_value(self):
         r = client.post("/api/v1/turn/preview", json={
