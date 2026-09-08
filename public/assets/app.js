@@ -12,7 +12,7 @@ let LAST_EVALUATION = {
 async function fetchEvaluation(action = 'metrics') {
   const payload = {
     patients: STATE.patients.map(p => ({
-      id: p.id, name: p.name, diagnosis: p.diagnosis, barthel: p.barthel, braden: p.braden, bronco: p.bronco
+      id: p.id, name: p.name, diagnosis: p.diagnosis, weight: p.weight, barthel: p.barthel, braden: p.braden, broncoFlags: p.broncoFlags
     })),
     auxiliaries: STATE.auxiliaries.map(a => ({
       id: a.id, name: a.name, weight: a.weight
@@ -29,18 +29,10 @@ async function fetchEvaluation(action = 'metrics') {
 }
 
 async function previewTurn(partialPatient = null, partialAux = null) {
-  const payload = {
-    patients: STATE.patients.map(p => ({
-      id: p.id, name: p.name, diagnosis: p.diagnosis, barthel: p.barthel, braden: p.braden, bronco: p.bronco
-    })),
-    auxiliaries: STATE.auxiliaries.map(a => ({
-      id: a.id, name: a.name, weight: a.weight
-    })),
-    assignments: STATE.assignments
+  const requestBody = {
+    patients: partialPatient ? [partialPatient] : [],
+    auxiliaries: partialAux ? [partialAux] : []
   };
-  const requestBody = { state: payload };
-  if (partialPatient) requestBody.partial_patient = partialPatient;
-  if (partialAux) requestBody.partial_auxiliary = partialAux;
   const response = await fetch(`${API_BASE}/turn/preview`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
