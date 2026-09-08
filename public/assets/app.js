@@ -455,10 +455,10 @@ const STATE = {
 
       try {
         const preview = await previewTurn({
-          id: "preview", name: "Preview", diagnosis: "",
+          id: 999999, name: "Preview", diagnosis: "",
           weight, barthel, braden, broncoFlags: STATE.formBroncoFlags
         }, null);
-        const score = preview.patient_scores["preview"] || { risk: "INCOMPLETO", total: "-" };
+        const score = preview.patient_scores[999999] || { risk: "INCOMPLETO", total: "-" };
         
         $("#prev-score").textContent = score.total;
         $("#prev-risk").textContent = score.risk;
@@ -479,7 +479,7 @@ const STATE = {
         return;
       }
       try {
-        const preview = await previewTurn(null, { id: "preview", name: "Preview", weight });
+        const preview = await previewTurn(null, { id: 999999, name: "Preview", weight });
         const profile = preview.auxiliary_profiles["preview"] || { type: "Desconocido", cap10: 0, maxPatients: 0 };
         
         $("#prev-type").textContent = profile.type;
