@@ -1,0 +1,17 @@
+[project]
+name = "numia-engine"
+version = "0.1.0"
+description = "Motor determinista NUMIA con paridad frente al HTML de referencia."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110,<1",
+    "uvicorn[standard]>=0.27,<1",
+    "pydantic>=2.6,<3",
+]
+
+[project.optional-dependencies]
+test = [
+    "httpx>=0.27",
+]
+
+# unittest discovery is configured by the documented command, not pyproject.

@@ -1,0 +1,38 @@
+{
+  "schema_version": "parity-1",
+  "reference_sha256": "64423D796D467DD7ACB7784D522BBD5E45392BD6CE40BA80D3F714F3D0BC9BC6",
+  "sample_turn": {
+    "patients": [
+      { "id": 101, "name": "Paciente 101", "weight": 67, "barthel": 96, "braden": 22, "broncoFlags": [false, false, false, false, false] },
+      { "id": 102, "name": "Paciente 102", "weight": 42, "barthel": 83, "braden": 21, "broncoFlags": [false, false, false, false, false] },
+      { "id": 103, "name": "Paciente 103", "weight": 51, "barthel": 88, "braden": 21, "broncoFlags": [false, false, false, false, false] },
+      { "id": 104, "name": "Paciente 104", "weight": 71, "barthel": 90, "braden": 23, "broncoFlags": [false, false, false, false, false] },
+      { "id": 105, "name": "Paciente 105", "weight": 69, "barthel": 35, "braden": 14, "broncoFlags": [true, true, false, false, false] },
+      { "id": 106, "name": "Paciente 106", "weight": 88, "barthel": 18, "braden": 11, "broncoFlags": [true, true, true, true, true] },
+      { "id": 107, "name": "Paciente 107", "weight": 67, "barthel": 87, "braden": 16, "broncoFlags": [false, false, false, false, false] },
+      { "id": 108, "name": "Paciente 108", "weight": 72, "barthel": 78, "braden": 21, "broncoFlags": [false, false, false, true, false] }
+    ],
+    "auxiliaries": [
+      { "id": "aux1", "name": "Auxiliar 1", "weight": 70 },
+      { "id": "aux2", "name": "Auxiliar 2", "weight": 50 },
+      { "id": "aux3", "name": "Auxiliar 3", "weight": 85 },
+      { "id": "aux4", "name": "Auxiliar 4", "weight": 73 },
+      { "id": "aux5", "name": "Auxiliar 5", "weight": 94 }
+    ]
+  },
+  "expected": {
+    "assignments": { "101": "aux3", "102": "aux1", "103": "aux2", "104": "aux4", "105": "aux3", "106": "aux5", "107": "aux4", "108": "aux1" },
+    "scores": { "101": [7, "LEVE", 1], "102": [5, "LEVE", 1], "103": [5, "LEVE", 1], "104": [8, "LEVE", 1], "105": [11, "MODERADO", 2], "106": [17, "SEVERO", 4.5], "107": [7, "LEVE", 1], "108": [9, "MODERADO", 2] },
+    "summary": { "balance": 100, "unassigned": 0, "overloaded": 0, "alerts": 0 }
+  },
+  "overload_turn": {
+    "patients": [
+      { "id": 1, "name": "Paciente A", "weight": 80, "barthel": 18, "braden": 11, "broncoFlags": [true, true, true, false, false] },
+      { "id": 2, "name": "Paciente B", "weight": 80, "barthel": 18, "braden": 11, "broncoFlags": [true, true, true, false, false] },
+      { "id": 3, "name": "Paciente C", "weight": 80, "barthel": 18, "braden": 11, "broncoFlags": [true, true, true, false, false] },
+      { "id": 4, "name": "Paciente D", "weight": 80, "barthel": 18, "braden": 11, "broncoFlags": [true, true, true, false, false] }
+    ],
+    "auxiliaries": [{ "id": "aux3", "name": "Auxiliar 3", "weight": 75 }]
+  },
+  "overload_expected": { "assignments": { "1": "aux3", "2": "aux3", "3": "aux3", "4": "aux3" }, "care_units": 18, "care_capacity": 17, "overloaded": 1, "alerts": 1 }
+}

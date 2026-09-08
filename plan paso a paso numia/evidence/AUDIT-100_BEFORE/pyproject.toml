@@ -1,0 +1,8 @@
+[project]
+name = "numia-engine"
+version = "0.1.0"
+description = "Motor determinista NUMIA con paridad frente al HTML de referencia."
+requires-python = ">=3.11"
+
+[tool.unittest]
+start-directory = "tests"

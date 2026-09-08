@@ -1,0 +1,18 @@
+
+__pycache__/
+*.py[cod]
+*.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# QA / Temp
+.pytest_cache/
+htmlcov/
+.coverage

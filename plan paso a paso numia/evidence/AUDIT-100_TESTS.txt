@@ -1,0 +1,46 @@
+test_422_on_barthel_out_of_range (test_api.EvaluateEndpointTests.test_422_on_barthel_out_of_range) ... ok
+test_422_on_dangling_assignment (test_api.EvaluateEndpointTests.test_422_on_dangling_assignment) ... ok
+test_422_on_duplicate_patient_ids (test_api.EvaluateEndpointTests.test_422_on_duplicate_patient_ids) ... ok
+test_422_on_invalid_patient_id (test_api.EvaluateEndpointTests.test_422_on_invalid_patient_id) ... ok
+test_422_on_negative_weight (test_api.EvaluateEndpointTests.test_422_on_negative_weight) ... ok
+test_422_on_unknown_action (test_api.EvaluateEndpointTests.test_422_on_unknown_action) ... ok
+test_422_on_wrong_bronco_flags_length (test_api.EvaluateEndpointTests.test_422_on_wrong_bronco_flags_length) ... ok
+test_balance_returns_200_with_expected_keys (test_api.EvaluateEndpointTests.test_balance_returns_200_with_expected_keys) ... ok
+test_empty_turn_balance (test_api.EvaluateEndpointTests.test_empty_turn_balance) ... ok
+test_float_patient_id_101_0_works (test_api.EvaluateEndpointTests.test_float_patient_id_101_0_works) ... ok
+test_metrics_preserves_given_assignments (test_api.EvaluateEndpointTests.test_metrics_preserves_given_assignments) ... ok
+test_no_patient_data_in_422_response (test_api.EvaluateEndpointTests.test_no_patient_data_in_422_response) ... ok
+test_overload_case_18_over_17 (test_api.EvaluateEndpointTests.test_overload_case_18_over_17)
+18 patients assigned to auxiliary with maxPatients=6 triggers overload. ... ok
+test_health_check (test_api.HealthTests.test_health_check) ... ok
+test_preview_rejects_invalid_present_value (test_api.PreviewEndpointTests.test_preview_rejects_invalid_present_value) ... ok
+test_preview_with_partial_auxiliary (test_api.PreviewEndpointTests.test_preview_with_partial_auxiliary) ... ok
+test_preview_with_partial_patient (test_api.PreviewEndpointTests.test_preview_with_partial_patient) ... ok
+test_100_metrics_snapshots (test_differential.DifferentialTests.test_100_metrics_snapshots) ... ok
+test_100_randomized_turns (test_differential.DifferentialTests.test_100_randomized_turns) ... 100 random turns: seed=20260908; patients=8245; auxiliaries=1395; elapsed=7.426s
+ok
+test_coverage_rounding_half_ties (test_differential.DifferentialTests.test_coverage_rounding_half_ties) ... ok
+test_incomplete_patients_are_not_assigned (test_differential.DifferentialTests.test_incomplete_patients_are_not_assigned) ... ok
+test_integer_valued_float_patient_ids (test_differential.DifferentialTests.test_integer_valued_float_patient_ids) ... ok
+test_reference_and_original_are_unchanged (test_differential.DifferentialTests.test_reference_and_original_are_unchanged) ... ok
+test_tie_order_and_hard_patient_capacity (test_differential.DifferentialTests.test_tie_order_and_hard_patient_capacity) ... ok
+test_auxiliary_boundaries_keep_cap20_non_decisive (test_golden.GoldenParityTests.test_auxiliary_boundaries_keep_cap20_non_decisive) ... ok
+test_overload_remains_possible (test_golden.GoldenParityTests.test_overload_remains_possible) ... ok
+test_sample_turn_exactly_matches_reference (test_golden.GoldenParityTests.test_sample_turn_exactly_matches_reference) ... ok
+test_score_boundaries (test_golden.GoldenParityTests.test_score_boundaries) ... ok
+test_does_not_turn_clinical_capacity_into_a_validation_rule (test_validation.ValidationTests.test_does_not_turn_clinical_capacity_into_a_validation_rule) ... ok
+test_emits_no_patient_data_to_stdout_or_stderr (test_validation.ValidationTests.test_emits_no_patient_data_to_stdout_or_stderr) ... ok
+test_preview_action_allows_missing_fields_but_validates_present_ones (test_validation.ValidationTests.test_preview_action_allows_missing_fields_but_validates_present_ones) ... ok
+test_rejects_dangling_assignments_in_both_actions (test_validation.ValidationTests.test_rejects_dangling_assignments_in_both_actions) ... ok
+test_rejects_duplicate_and_invalid_ids (test_validation.ValidationTests.test_rejects_duplicate_and_invalid_ids) ... ok
+test_rejects_invalid_flags (test_validation.ValidationTests.test_rejects_invalid_flags) ... ok
+test_rejects_invalid_scale_ranges (test_validation.ValidationTests.test_rejects_invalid_scale_ranges) ... ok
+test_rejects_malformed_shapes_and_actions (test_validation.ValidationTests.test_rejects_malformed_shapes_and_actions) ... ok
+test_rejects_nonpositive_and_nonfinite_weights (test_validation.ValidationTests.test_rejects_nonpositive_and_nonfinite_weights) ... ok
+test_transport_limit_on_weight (test_validation.ValidationTests.test_transport_limit_on_weight) ... ok
+test_valid_metrics_does_not_rebalance_and_results_do_not_alias_inputs (test_validation.ValidationTests.test_valid_metrics_does_not_rebalance_and_results_do_not_alias_inputs) ... ok
+
+----------------------------------------------------------------------
+Ran 39 tests in 16.389s
+
+OK
