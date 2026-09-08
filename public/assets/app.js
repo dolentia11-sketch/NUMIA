@@ -134,6 +134,19 @@ const STATE = {
       })[char]);
     }
 
+    
+    function shouldAutoRebalance() {
+      return STATE.hasBalanced && STATE.patients.length > 0 && STATE.auxiliaries.length > 0;
+    }
+
+    async function renderAfterDataChange() {
+      if (shouldAutoRebalance()) {
+        await runEvaluate("balance", true);
+      } else {
+        await runEvaluate("metrics");
+      }
+    }
+
     function render() {
       const metrics = LAST_EVALUATION.metrics || { unassigned: 0, overloaded: 0, loads: {} };
 
