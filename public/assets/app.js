@@ -453,22 +453,20 @@ const STATE = {
         return;
       }
 
-      const score = patientScore({ weight, barthel, braden, broncoFlags: STATE.formBroncoFlags });
-      $("#prev-score").textContent = score.total;
-      $("#prev-risk").textContent = score.risk;
-      $("#prev-risk").style.color = score.risk === "SEVERO" ? "var(--red)" : score.risk === "MODERADO" ? "var(--orange)" : score.risk === "LEVE" ? "var(--green)" : "var(--faint)";
-      $("#prev-aux").textContent = `Tipo ${Math.max(score.riskValue, 1)}+`;
-
-      const broncoCount = STATE.formBroncoFlags.filter(Boolean).length;
-      $("#prev-explain").innerHTML = `
-        <strong>Desglose:</strong>
-        Barthel ${barthel} → <code>${score.parts.barthel}pt</code> ·
-        Braden ${braden} → <code>${score.parts.braden}pt</code> ·
-        EED ${broncoCount}/5 → <code>${score.parts.bronco}pt</code> ·
-        Peso ${weight}kg → <code>${score.parts.weight}pt</code>
-        <br><strong>Total:</strong> <code>${score.parts.barthel}+${score.parts.braden}+${score.parts.bronco}+${score.parts.weight} = ${score.total}</code> → <strong>${score.risk}</strong>
-      `;
-      $("#prev-explain").classList.add("show");
+      try {
+        const preview = await previewTurn({
+          id: "preview", name: "Preview", diagnosis: "",
+          weight, barthel, braden, broncoFlags: STATE.formBroncoFlags
+        }, null);
+        const score = preview.patient_scores["preview"] || { risk: "INCOMPLETO", total: "-" };
+        
+        $("#prev-score").textContent = score.total;
+        $("#prev-risk").textContent = score.risk;
+        $("#prev-risk").style.color = score.risk === "SEVERO" ? "var(--severe)" : score.risk === "MODERADO" ? "var(--moderate)" : "var(--mild)";
+        $("#prev-aux").textContent = "API";
+        $("#prev-explain").innerHTML = `Evaluado vía API. Riesgo: <strong>${score.risk}</strong>`;
+        $("#prev-explain").classList.add("show");
+      } catch (e) { console.error(e); }
     }
 
     async function updateAuxPreview() {
@@ -480,14 +478,19 @@ const STATE = {
         $("#prev-aux-explain").classList.remove("show");
         return;
       }
-      const profile = auxiliaryProfile(weight);
-      $("#prev-type").textContent = profile.type;
-      $("#prev-cap10").textContent = profile.cap10.toFixed(1);
-      $("#prev-maxp").textContent = profile.maxPatients;
-      $("#prev-aux-explain").innerHTML = `
-        <strong>Desglose:</strong> Peso ${weight}kg → <code>${profile.type}</code> · capacidad segura <code>${profile.cap10.toFixed(1)} kg</code> · máximo <code>${profile.maxPatients}</code> pacientes.
-      `;
-      $("#prev-aux-explain").classList.add("show");
+      try {
+        const preview = await previewTurn(null, { id: "preview", name: "Preview", weight });
+        const profile = preview.auxiliary_profiles["preview"] || { type: "Desconocido", cap10: 0, maxPatients: 0 };
+        
+        $("#prev-type").textContent = profile.type;
+        $("#prev-cap10").textContent = profile.cap10.toFixed(1);
+        $("#prev-maxp").textContent = profile.maxPatients;
+
+        $("#prev-aux-explain").innerHTML = `
+          Evaluado vía API -> <code>${profile.type}</code> | máximo <code>${profile.maxPatients}</code> pacientes.
+        `;
+        $("#prev-aux-explain").classList.add("show");
+      } catch (e) { console.error(e); }
     }
 
     async function savePatient() {
