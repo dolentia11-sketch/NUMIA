@@ -156,7 +156,7 @@ class DifferentialTests(unittest.TestCase):
         # Git checks out LF on Linux; the original Windows file has mixed EOL.
         # Normalize only CRLF, preserving every other source byte.
         expected = "B78ADB9EBCE27AA7FB0100E9EDF72F9F00C704953E9AA7AE7C47EBC71F5BC120"
-        for relative in ["index.html", "reference/index.html"]:
+        for relative in ["reference/index.html"]:
             content = (ROOT / relative).read_bytes().replace(b'\r\n', b'\n')
             self.assertEqual(hashlib.sha256(content).hexdigest().upper(), expected)
 

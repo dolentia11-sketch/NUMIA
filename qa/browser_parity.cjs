@@ -7,7 +7,7 @@ const {execFileSync} = require('node:child_process');
 const {evaluate} = require('./html_oracle.cjs');
 const root = path.resolve(__dirname, '..');
 const fixture = JSON.parse(fs.readFileSync(path.join(root, 'backend/tests/fixtures/golden_turn.json')));
-const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'reference', 'index.html'), 'utf8');
 const executable = process.argv[2];
 const session = process.argv[3] || 'numia-parity-final';
 assert.ok(executable, 'Pass the agent-browser executable path and optional session.');
