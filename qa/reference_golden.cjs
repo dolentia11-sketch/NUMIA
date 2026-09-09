@@ -8,8 +8,9 @@ const root = path.resolve(__dirname, '..');
 const referencePath = path.join(root, 'reference', 'index.html');
 const fixture = JSON.parse(fs.readFileSync(path.join(root, 'backend', 'tests', 'fixtures', 'golden_turn.json'), 'utf8'));
 const raw = fs.readFileSync(referencePath, 'utf8');
-const hash = crypto.createHash('sha256').update(raw).digest('hex').toUpperCase();
-assert.equal(hash, fixture.reference_sha256, 'La referencia no coincide con la huella congelada.');
+const {HASH} = require('./html_oracle.cjs');
+const hash = crypto.createHash('sha256').update(raw.replace(/\r\n/g, '\n')).digest('hex').toUpperCase();
+assert.equal(hash, HASH, 'La referencia no coincide con la huella congelada de contenido LF.');
 
 const start = raw.indexOf('function scoreBarthel');
 const end = raw.indexOf('function render()');

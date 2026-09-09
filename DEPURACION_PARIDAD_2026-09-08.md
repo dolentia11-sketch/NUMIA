@@ -8,6 +8,8 @@ El propietario priorizó equivalencia matemática con `index.html`. Se conserva 
 
 SHA-256 de ambos HTML de referencia: `64423D796D467DD7ACB7784D522BBD5E45392BD6CE40BA80D3F714F3D0BC9BC6`.
 
+Git almacena el mismo contenido con saltos LF: SHA-256 `B78ADB9EBCE27AA7FB0100E9EDF72F9F00C704953E9AA7AE7C47EBC71F5BC120`. El primer CI Linux detectó esa diferencia de formato; las pruebas ahora normalizan exclusivamente CRLF a LF antes de verificar esta huella fija. Ningún archivo de referencia ni fórmula fue editado.
+
 ## Discrepancias corregidas
 
 1. El cliente enviaba `{state: ...}` pero el esquema requería campos raíz. Ahora envía el contrato correcto y el esquema rechaza envoltorios desconocidos.
@@ -43,6 +45,8 @@ El nuevo test de frontend servido falló antes de corregir las funciones ausente
 ## Despliegue y límites
 
 El dominio público registrado en GitHub es `https://numia-ashen.vercel.app`. La integración Vercel publica la rama `main`. La URL técnica de cada despliegue está protegida por SSO, por lo que la verificación pública debe realizarse sobre el dominio registrado. El resultado remoto se registra al finalizar la publicación; las pruebas locales por sí solas no acreditan producción.
+
+Publicación funcional `9d0d77a`: Vercel informó `success` y `https://numia-ashen.vercel.app/api/health` devolvió `200` con `status: ok` y `engine_version: parity-1`. La prueba `qa/browser_parity.cjs` contra el dominio público pasó las 30 comprobaciones, incluidas asignaciones y métricas golden, registro y reintento, espera del PDF y sobrecarga 18/17. El seguimiento posterior solo corrige la portabilidad del control de huellas en CI y documenta esta evidencia; no cambia la aplicación desplegada.
 
 Esto acredita equivalencia de software en los casos indicados, no validación clínica independiente del modelo. Se conservan deliberadamente el algoritmo voraz, los cupos, el cálculo de cap20 sin activarlo, la sobrecarga posible y la ausencia de persistencia.
 

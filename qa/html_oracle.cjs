@@ -7,9 +7,11 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
-const HASH = '64423D796D467DD7ACB7784D522BBD5E45392BD6CE40BA80D3F714F3D0BC9BC6';
+// Pin exact UTF-8 content with CRLF represented as LF, as Git stores it.
+// No trimming, whitespace folding, or clinical-source rewriting is allowed.
+const HASH = 'B78ADB9EBCE27AA7FB0100E9EDF72F9F00C704953E9AA7AE7C47EBC71F5BC120';
 const bytes = fs.readFileSync(path.join(ROOT, 'reference', 'index.html'));
-assert.equal(crypto.createHash('sha256').update(bytes).digest('hex').toUpperCase(), HASH);
+assert.equal(crypto.createHash('sha256').update(bytes.toString('utf8').replace(/\r\n/g, '\n')).digest('hex').toUpperCase(), HASH);
 const html = bytes.toString('utf8');
 function block(startAnchor, endAnchor) {
   const start = html.indexOf(startAnchor);
