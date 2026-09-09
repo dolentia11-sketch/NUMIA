@@ -360,10 +360,11 @@
         <header class="matchfield-header">
           <div>
             <h2 class="matchfield-title">Campo de <em>coincidencia</em></h2>
-            <p class="matchfield-sub">Modelo visual de asignación en tiempo real. Pasa el cursor sobre cualquier nodo para inspeccionar la conexión.</p>
+            <p class="matchfield-sub">Distribución del turno por auxiliar. Cada columna muestra su carga y los pacientes asignados.</p>
           </div>
           <span class="ai-pill"><span class="dot"></span> Live</span>
         </header>
+        <div id="assignment-board" class="assignment-board" role="region" aria-label="Distribución de pacientes por auxiliar" tabindex="0"></div>
         <canvas id="matchfield-canvas" aria-hidden="true"></canvas>
         <div id="matchfield-a11y-summary" class="sr-only" aria-live="polite"></div>
         <div class="legend">

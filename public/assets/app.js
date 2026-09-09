@@ -227,6 +227,7 @@ const STATE = {
 
       renderPatients();
       renderAuxiliaries(metrics);
+      renderAssignmentBoard(metrics);
 
       const summaryEl = $("#matchfield-a11y-summary");
       if (summaryEl) {
@@ -245,6 +246,101 @@ const STATE = {
       }
 
       rebuildMatchfieldNodes();
+    }
+
+    function renderAssignmentBoard(metrics) {
+      const board = $("#assignment-board");
+      if (!board) return;
+
+      if (STATE.patients.length === 0 && STATE.auxiliaries.length === 0) {
+        board.innerHTML = `
+          <div class="assignment-board-empty">
+            <strong>Esperando datos del turno</strong>
+            <span>Registra pacientes y auxiliares para visualizar la distribución.</span>
+          </div>`;
+        return;
+      }
+
+      const patientCard = patient => {
+        const score = LAST_EVALUATION.patient_scores[patient.id] || { risk: "INCOMPLETO", total: "—" };
+        const riskClass = score.risk === "SEVERO" ? "severe" : score.risk === "MODERADO" ? "moderate" : score.risk === "LEVE" ? "mild" : "out";
+        const broncoCount = (patient.broncoFlags || []).filter(Boolean).length;
+        const eed = broncoCount >= 3 ? `<span class="assignment-patient-eed">EED ${broncoCount}/5</span>` : "";
+        return `
+          <article class="assignment-patient risk-${riskClass}" aria-label="Paciente ${escapeHtml(patient.name)}, cama ${escapeHtml(patient.id)}, riesgo ${escapeHtml(score.risk)}">
+            <div class="assignment-patient-topline">
+              <span class="assignment-patient-id">P-${escapeHtml(patient.id)}</span>
+              <span class="assignment-risk risk-${riskClass}"><span class="legend-dot"></span>${escapeHtml(score.risk)}</span>
+            </div>
+            <strong>${escapeHtml(patient.name)}</strong>
+            <div class="assignment-patient-meta">
+              <span>Cama ${escapeHtml(patient.id)}</span>
+              <span aria-hidden="true">·</span>
+              <span>${escapeHtml(patient.weight)} kg</span>
+              <span aria-hidden="true">·</span>
+              <span>Puntaje ${escapeHtml(score.total ?? "—")}</span>
+              ${eed}
+            </div>
+          </article>`;
+      };
+
+      const auxiliaryColumns = STATE.auxiliaries.map(auxiliary => {
+        const profile = LAST_EVALUATION.auxiliary_profiles[auxiliary.id] || { type: "Desconocido", maxPatients: 0 };
+        const load = metrics.loads[auxiliary.id] || { count: 0, capacity: profile.maxPatients || 0, status: "libre" };
+        const capacity = load.capacity ?? profile.maxPatients ?? 0;
+        const assigned = STATE.patients.filter(patient => STATE.assignments[patient.id] === auxiliary.id);
+        const initials = auxiliary.name.split(/\s+/).filter(Boolean).map(part => part[0]).slice(0, 2).join("").toUpperCase();
+        const percentage = capacity > 0 ? Math.min(100, Math.round((assigned.length / capacity) * 100)) : 0;
+        const status = ["libre", "ok", "full", "overload"].includes(load.status) ? load.status : "libre";
+
+        return `
+          <section class="assignment-column status-${status}" aria-label="${escapeHtml(auxiliary.name)}: ${assigned.length} de ${capacity} pacientes">
+            <header class="assignment-column-header">
+              <div class="assignment-identity">
+                <span class="assignment-avatar" aria-hidden="true">${escapeHtml(initials || "AX")}</span>
+                <div>
+                  <h3>${escapeHtml(auxiliary.name)}</h3>
+                  <p>${escapeHtml(profile.type)}</p>
+                </div>
+              </div>
+              <span class="assignment-status status-${status}">${labelStatus(status)}</span>
+              <div class="assignment-capacity">
+                <strong>${assigned.length}<span>/${capacity}</span></strong>
+                <span>pacientes</span>
+              </div>
+              <div class="assignment-capacity-track" aria-label="Ocupación ${percentage}%">
+                <span class="fill-${status}" style="width:${percentage}%"></span>
+              </div>
+            </header>
+            <div class="assignment-patient-list">
+              ${assigned.length ? assigned.map(patientCard).join("") : `<div class="assignment-column-empty">Sin pacientes asignados</div>`}
+            </div>
+          </section>`;
+      });
+
+      const unassigned = STATE.patients.filter(patient => !STATE.assignments[patient.id]);
+      auxiliaryColumns.push(`
+        <section class="assignment-column assignment-unassigned" aria-label="Pacientes sin asignar: ${unassigned.length}">
+          <header class="assignment-column-header">
+            <div class="assignment-identity">
+              <span class="assignment-avatar unassigned" aria-hidden="true">?</span>
+              <div>
+                <h3>Sin asignar</h3>
+                <p>Requieren revisión</p>
+              </div>
+            </div>
+            <span class="assignment-status ${unassigned.length ? "status-overload" : "status-libre"}">${unassigned.length ? "Pendiente" : "Completo"}</span>
+            <div class="assignment-capacity">
+              <strong>${unassigned.length}</strong>
+              <span>${unassigned.length === 1 ? "paciente" : "pacientes"}</span>
+            </div>
+          </header>
+          <div class="assignment-patient-list">
+            ${unassigned.length ? unassigned.map(patientCard).join("") : `<div class="assignment-column-empty success">Todos los pacientes tienen auxiliar</div>`}
+          </div>
+        </section>`);
+
+      board.innerHTML = auxiliaryColumns.join("");
     }
 
     function renderPatients() {

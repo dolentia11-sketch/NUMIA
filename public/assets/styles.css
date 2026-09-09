@@ -580,15 +580,261 @@
     }
 
     #matchfield-canvas {
-      display: block;
-      width: 100%;
-      height: 304px;
+      position: absolute;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden;
+      clip-path: inset(50%);
+      opacity: 0;
+      pointer-events: none;
       border: 1px solid rgba(192, 197, 205, 0.1);
       border-radius: 16px;
       background:
         radial-gradient(circle at 20% 50%, rgba(255, 107, 107, 0.05), transparent 38%),
         radial-gradient(circle at 80% 50%, rgba(111, 168, 255, 0.06), transparent 38%),
         linear-gradient(180deg, rgba(10, 15, 31, 0.46), rgba(10, 15, 31, 0.84));
+    }
+
+    .assignment-board {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(218px, 1fr);
+      gap: 1px;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--line);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      scrollbar-color: rgba(35, 51, 77, 0.28) transparent;
+    }
+
+    .assignment-board:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .assignment-column {
+      min-width: 0;
+      min-height: 310px;
+      background: rgba(247, 249, 252, 0.92);
+    }
+
+    .assignment-column-header {
+      position: relative;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(35, 51, 77, 0.98), rgba(22, 37, 61, 0.98));
+      color: var(--off-white);
+    }
+
+    .assignment-column.status-overload .assignment-column-header {
+      background: linear-gradient(180deg, #742b38, #53202a);
+    }
+
+    .assignment-identity {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: center;
+      gap: 9px;
+      padding-right: 58px;
+    }
+
+    .assignment-avatar {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 50%;
+      background: linear-gradient(145deg, #367eb5, #2b746b);
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .assignment-avatar.unassigned {
+      background: rgba(212, 175, 55, 0.2);
+      color: var(--gold-light);
+      border-color: rgba(232, 199, 108, 0.45);
+    }
+
+    .assignment-identity h3 {
+      overflow: hidden;
+      color: #fff;
+      font-size: 0.76rem;
+      font-weight: 700;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .assignment-identity p {
+      margin-top: 2px;
+      color: rgba(244, 246, 248, 0.66);
+      font-size: 0.65rem;
+    }
+
+    .assignment-status {
+      position: absolute;
+      top: 14px;
+      right: 12px;
+      padding: 3px 6px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 0.58rem;
+      font-weight: 750;
+    }
+
+    .assignment-capacity {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      margin-top: 11px;
+      color: rgba(244, 246, 248, 0.7);
+      font-size: 0.62rem;
+    }
+
+    .assignment-capacity strong {
+      color: #fff;
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .assignment-capacity strong span {
+      color: rgba(244, 246, 248, 0.62);
+      font-size: 0.72rem;
+    }
+
+    .assignment-capacity-track {
+      height: 4px;
+      margin-top: 7px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .assignment-capacity-track > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: #4ec99a;
+    }
+
+    .assignment-capacity-track > .fill-full { background: var(--gold-light); }
+    .assignment-capacity-track > .fill-overload { background: #ff9ca6; }
+
+    .assignment-patient-list {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .assignment-patient {
+      position: relative;
+      padding: 10px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--green);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 14px rgba(35, 51, 77, 0.06);
+    }
+
+    .assignment-patient.risk-moderate { border-left-color: var(--orange); }
+    .assignment-patient.risk-severe { border-left-color: var(--red); }
+    .assignment-patient.risk-out { border-left-color: var(--muted); }
+
+    .assignment-patient-topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 5px;
+    }
+
+    .assignment-patient-id {
+      color: var(--muted);
+      font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+      font-size: 0.62rem;
+      font-weight: 800;
+    }
+
+    .assignment-risk {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 5px;
+      border-radius: 999px;
+      background: rgba(23, 105, 69, 0.08);
+      color: var(--green);
+      font-size: 0.54rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: capitalize;
+    }
+
+    .assignment-risk.risk-moderate { background: rgba(135, 81, 11, 0.09); color: var(--orange); }
+    .assignment-risk.risk-severe { background: rgba(174, 48, 62, 0.09); color: var(--red); }
+    .assignment-risk.risk-out { background: rgba(74, 89, 112, 0.09); color: var(--muted); }
+    .assignment-risk .legend-dot { width: 6px; height: 6px; background: currentColor; }
+
+    .assignment-patient > strong {
+      display: block;
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 0.73rem;
+      line-height: 1.3;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .assignment-patient-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px 5px;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.58rem;
+      line-height: 1.35;
+    }
+
+    .assignment-patient-eed {
+      color: var(--purple);
+      font-weight: 800;
+    }
+
+    .assignment-column-empty,
+    .assignment-board-empty {
+      display: grid;
+      place-content: center;
+      min-height: 104px;
+      padding: 18px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-align: center;
+    }
+
+    .assignment-column-empty.success { color: var(--green); }
+
+    .assignment-board-empty {
+      grid-auto-flow: row;
+      gap: 4px;
+      min-height: 260px;
+      border: 0;
+      background: rgba(247, 249, 252, 0.92);
+    }
+
+    .assignment-board-empty strong { color: var(--ink); font-size: 0.88rem; }
+
+    .assignment-unassigned .assignment-column-header {
+      background: linear-gradient(180deg, #4a5568, #354052);
     }
 
     .legend {
@@ -1787,6 +2033,15 @@
 
       .matchfield {
         padding: 1rem;
+      }
+
+      .assignment-board {
+        grid-auto-columns: minmax(82vw, 1fr);
+        scroll-snap-type: inline proximity;
+      }
+
+      .assignment-column {
+        scroll-snap-align: start;
       }
 
       #matchfield-canvas {
